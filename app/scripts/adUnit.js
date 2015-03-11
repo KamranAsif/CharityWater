@@ -20,18 +20,17 @@
   ];
 
   var imageStyles = {
-    'max-width': '100%',
-    '-webkit-user-drag': 'none',
-    'user-select': 'none',
-    transform: 'translateZ(0)'
+    maxWidth: '100%',
+    transform: 'translateZ(0)',
+    webkitTransform: 'translateZ(0)',
   };
 
   var containerStyles = {
     height: '340px',
     width: '100%',
-    'max-width': '600px',
+    maxWidth: '600px',
     overflow: 'hidden',
-    'white-space': 'nowrap'
+    whiteSpace: 'nowrap'
   };
 
   var start = (isTouchscreen) ? 'touchstart' : 'mousedown';
@@ -40,20 +39,13 @@
 
   var AdUnit = function (parentEl) {
 
-    var container = document.createElement('div');
-    mixin(container, containerStyles);
+    this.container = document.createElement('div');
+    mixin(this.container, containerStyles);
 
-    this.images = imageUrls.map(function (imageUrl) {
-      var img = document.createElement('img'); 
-      img.setAttribute('src', imageUrl);
-      mixin(img, imageStyles);
-      container.appendChild(img);
-      return img;
-    });
+    this.images = imageUrls.map(this.createImage.bind(this));
 
-    parentEl.appendChild(container);
+    parentEl.appendChild(this.container);
 
-    this.container = container;
     this.container.addEventListener(start, this.startDrag.bind(this));
 
     this.onDragHandler = this.onDrag.bind(this);
@@ -66,15 +58,33 @@
     this.width = this.container.offsetWidth;
   };
 
+  var returnFalse = function (e) {
+    e.preventDefault();
+    return false;
+  };
+
+  AdUnit.prototype.createImage = function (imageUrl) {
+    var img = document.createElement('img'); 
+    mixin(img, imageStyles);
+    this.container.appendChild(img);
+
+    img.setAttribute('src', imageUrl);
+
+    img.addEventListener('dragstart', returnFalse);
+    return img;
+  }
+
   AdUnit.prototype.startDrag = function (e) {
     this.startX = (typeof e.screenX !== 'undefined') ? e.screenX : e.targetTouches[0].screenX;
     this.startTime = new Date();
     document.addEventListener(move, this.onDragHandler);
     document.addEventListener(end, this.stopDragHandler);
     this.tick();
+    return false;
   };
 
   AdUnit.prototype.stopDrag = function () {
+  console.log('stopDrag');
     document.removeEventListener(move, this.onDragHandler);
     document.removeEventListener(end, this.stopDragHandler);
 
@@ -111,6 +121,7 @@
     var transform = 'translateX(' + (this.last + this.offset) + '%) translateZ(0)';
     this.images.forEach(function (img) {
       img.style.transform = transform;
+      img.style.webkitTransform = transform;
     });
     if(this.running) {
       requestAnimationFrame(this.drawHandler);
@@ -120,6 +131,7 @@
   var clearTransition = function (e) {
     var el = e.target;
     el.style.transition = '';
+    el.style.webkitTransition = '';
     el.removeEventListener('transitionend', clearTransition);
     el.removeEventListener('webkittransitionend', clearTransition);
   };
@@ -130,7 +142,8 @@
 
   AdUnit.prototype.resetFrame = function () {
     this.images.forEach(function (img) {
-      img.style.transition = 'transform 300ms ease-out';
+      img.style.transition = 'all 300ms ease-out';
+      img.style.webkitTransition = 'all 300ms ease-out';
       img.addEventListener('transitionend', clearTransition);
       img.addEventListener('webkittransitionend', clearTransition);
     });
